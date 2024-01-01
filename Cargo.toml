@@ -13,3 +13,5 @@ enum_dispatch = "*"
 async-trait = "0.1.75"
 rand = { version = "0.8.5", features = [] }
 zipf = "7.0.1"
+awaitgroup = "0.7.0"
+clap = { version = "4.4.12", features = ["derive"] }

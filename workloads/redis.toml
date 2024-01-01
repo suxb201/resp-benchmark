@@ -11,26 +11,26 @@ threads = 0 # default to number of CPUs
 
 
 [[ping]]
-name = "ping"
-connections = 10
+name = "ping-16"
+connections = 16
 requests = 100000
 pipeline = 1
 
 
 [[set]]
 name = "set"
-connections = 1
+connections = 10
 pipeline = 1
-requests.requests_count = 1000_000
+requests.requests_count = 100_000
 requests.key_distribution = "uniform"
 requests.key_range = 100
 requests.value_size = 256
 
-#[[ping]]
-#name = "ping"
-#connections = 50
-#pipeline = 1
-#requests = 100000
+[[ping]]
+name = "ping-50"
+connections = 50
+pipeline = 1
+requests = 100000
 
 #
 #[[get]]
