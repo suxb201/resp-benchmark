@@ -1,4 +1,6 @@
-use crate::case::ping::Ping;
+use crate::case::Ping;
+use crate::case::Set;
+
 use crate::resp;
 use serde::Deserialize;
 
@@ -11,6 +13,7 @@ pub struct Config {
     pub threads: u64,
 
     pub ping: Option<Vec<Ping>>,
+    pub set: Option<Vec<Set>>,
 }
 
 impl Config {

@@ -1,11 +1,12 @@
 mod case;
 mod config;
 mod histogram;
+mod random;
 mod resp;
 
-use case::Case;
-use histogram::Histogram;
-use resp::{Client, RedisConfig};
+pub use case::Case;
+pub use histogram::Histogram;
+pub use resp::{Client, RedisConfig};
 use std::sync::Arc;
 
 async fn run_cmd(config: RedisConfig, case: impl Case) {
@@ -54,6 +55,11 @@ fn main() {
         if let Some(pings) = &config.ping {
             for ping in pings {
                 run_cmd(config.clone_redis_config(), ping.clone()).await;
+            }
+        }
+        if let Some(sets) = &config.set {
+            for set in sets {
+                run_cmd(config.clone_redis_config(), set.clone()).await;
             }
         }
     });
