@@ -1,0 +1,72 @@
+# standard redis benchmark workload
+cluster = false
+address = "127.0.0.1:6379"
+username = ""
+password = ""
+tls = false
+
+# should not be changed
+memory_field = "used_memory"
+threads = 0 # default to number of CPUs
+
+
+[[ping]]
+name = "ping"
+connections = 50
+requests = 100000
+pipeline = 1
+
+
+#[[set]]
+#name = "set"
+#connections = 50
+#pipeline = 1
+#requests.requests_count = 1_000_000
+#requests.key_distribution = "uniform"
+#requests.key_range = 1000_000
+#requests.value_size = 256
+
+[[ping]]
+name = "ping"
+connections = 50
+pipeline = 1
+requests = 100000
+
+#
+#[[get]]
+#name = "get"
+#connections = 50
+#pipeline = 1
+#dataset = { key_count = 1_000_000, value_size = 256 }
+#request = { requests_count = 1_000_000, key_distribution = "uniform" }
+#
+#[[lpush]]
+#name = "lpush"
+#connections = 50
+#pipeline = 1
+#requests.requests_count = 1_000_000
+#requests.value_count = 100
+#requests.value_size = 256
+#
+#[[lrange]]
+#name = "lrange"
+#connections = 50
+#pipeline = 1
+#dataset = { key_count = 1_000_000, value_count = 100, value_size = 256 }
+#request = { requests_count = 1_000_000, key_distribution = "uniform" }
+#
+#
+#[[zadd]]
+#name = "zadd"
+#connections = 50
+#pipeline = 1
+#requests.requests_count = 1_000_000
+#requests.value_count = 100
+#
+#[[zrange]]
+#name = "zrange"
+#connections = 50
+#pipeline = 1
+#dataset = { key_count = 1_000_000, value_count = 100, value_size = 256 }
+#request = { requests_count = 1_000_000, key_distribution = "uniform" }
+#

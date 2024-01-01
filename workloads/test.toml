@@ -1,0 +1,9 @@
+cluster = false
+
+[[ping]]
+name = "ping"
+
+
+[[set]]
+name = "ping"
+
