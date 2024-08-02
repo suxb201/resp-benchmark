@@ -1,122 +1,157 @@
 name: release
 
-# Controls when the workflow will run
 on:
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-jobs:
-  draft:
-    name: draft
-    runs-on: ubuntu-latest
-    steps:
-      - name: draft release
-        id: "draft"
-        uses: release-drafter/release-drafter@v5
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    outputs:
-      upload_url: ${{ steps.draft.outputs.upload_url }}
+permissions:
+  contents: read
 
-  build-and-upload:
-    needs: draft
-    name: build - ${{ matrix.platform.release_for }}
+jobs:
+  linux:
+    runs-on: ${{ matrix.platform.runner }}
     strategy:
       matrix:
         platform:
-          - release_for: linux-amd64
-            os: ubuntu-20.04
-            target: x86_64-unknown-linux-gnu
-            bin: resp-benchmark
-            name: resp-benchmark-linux-amd64.tar.gz
-            command: build
-
-          - release_for: linux-arm64
-            os: ubuntu-20.04
-            target: aarch64-unknown-linux-gnu
-            bin: resp-benchmark
-            name: resp-benchmark-linux-arm64.tar.gz
-            command: build
-
-          - release_for: windows-amd64
-            os: windows-latest
-            target: x86_64-pc-windows-msvc
-            bin: resp-benchmark.exe
-            name: resp-benchmark-windows-amd64.zip
-            command: build
-
-          - release_for: windows-arm64
-            os: windows-latest
-            target: aarch64-pc-windows-msvc
-            bin: resp-benchmark.exe
-            name: resp-benchmark-windows-arm64.zip
-            command: build
-
-          - release_for: macos-amd64
-            os: macos-latest
-            target: x86_64-apple-darwin
-            bin: resp-benchmark
-            name: resp-benchmark-macos-amd64.tar.gz
-            command: build
-
-          - release_for: macos-arm64
-            os: macos-latest
-            target: aarch64-apple-darwin
-            bin: resp-benchmark
-            name: resp-benchmark-macos-arm64.tar.gz
-            command: build
-
-    runs-on: ${{ matrix.platform.os }}
+          - runner: ubuntu-latest
+            target: x86_64
+          - runner: ubuntu-latest
+            target: x86
+          - runner: ubuntu-latest
+            target: aarch64
+          - runner: ubuntu-latest
+            target: armv7
+          - runner: ubuntu-latest
+            target: s390x
+          - runner: ubuntu-latest
+            target: ppc64le
     steps:
-      - name: checkout
-        uses: actions/checkout@v3
-
-      - name: cache cargo registry
-        uses: actions/cache@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-
-
-      - name: cache cargo index
-        uses: actions/cache@v3
+          python-version: 3.x
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
         with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-index-
-
-      - name: cache cargo build
-        uses: actions/cache@v3
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-build-
-
-      - name: build binary
-        uses: houseabsolute/actions-rust-cross@v0
-        with:
-          command: ${{ matrix.platform.command }}
           target: ${{ matrix.platform.target }}
-          args: "--locked --release"
-          strip: true
-      - name: Package as archive
-        shell: bash
-        run: |
-          cd target/${{ matrix.platform.target }}/release
-          if [[ "${{ matrix.platform.os }}" == "windows-latest" ]]; then
-            7z a ${{ matrix.platform.name }} ${{ matrix.platform.bin }} ../../../workloads
-          else
-            tar czvf ${{ matrix.platform.name }} ${{ matrix.platform.bin }} ../../../workloads
-          fi
-      - name: upload
-        uses: actions/upload-release-asset@v1
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+          manylinux: auto
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.draft.outputs.upload_url }}
-          asset_path: ./target/${{ matrix.platform.target }}/release/${{ matrix.platform.name }}
-          asset_name: ${{ matrix.platform.name }}
-          asset_content_type: ${{ matrix.platform.os == 'windows-latest' && 'application/zip' || 'application/gzip' }}
+          name: wheels-linux-${{ matrix.platform.target }}
+          path: dist
+
+  musllinux:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: ubuntu-latest
+            target: x86_64
+          - runner: ubuntu-latest
+            target: x86
+          - runner: ubuntu-latest
+            target: aarch64
+          - runner: ubuntu-latest
+            target: armv7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+          manylinux: musllinux_1_2
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-musllinux-${{ matrix.platform.target }}
+          path: dist
+
+  windows:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: windows-latest
+            target: x64
+          - runner: windows-latest
+            target: x86
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+          architecture: ${{ matrix.platform.target }}
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-windows-${{ matrix.platform.target }}
+          path: dist
+
+  macos:
+    runs-on: ${{ matrix.platform.runner }}
+    strategy:
+      matrix:
+        platform:
+          - runner: macos-12
+            target: x86_64
+          - runner: macos-14
+            target: aarch64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: 3.x
+      - name: Build wheels
+        uses: PyO3/maturin-action@v1
+        with:
+          target: ${{ matrix.platform.target }}
+          args: --release --out dist --find-interpreter
+          sccache: 'true'
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-macos-${{ matrix.platform.target }}
+          path: dist
+
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build sdist
+        uses: PyO3/maturin-action@v1
+        with:
+          command: sdist
+          args: --out dist
+      - name: Upload sdist
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-sdist
+          path: dist
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: "startsWith(github.ref, 'refs/tags/')"
+    needs: [linux, musllinux, windows, macos, sdist]
+    steps:
+      - uses: actions/download-artifact@v4
+      - name: Publish to PyPI
+        uses: PyO3/maturin-action@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          MATURIN_PYPI_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        with:
+          command: upload
+          args: --non-interactive --skip-existing wheels-*/*
